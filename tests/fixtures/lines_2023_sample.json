@@ -1,0 +1,108 @@
+[
+  {
+    "id": 401520281,
+    "season": 2023,
+    "seasonType": "regular",
+    "week": 1,
+    "startDate": "2023-09-02T16:00:00.000Z",
+    "homeTeamId": 130,
+    "homeTeam": "Michigan",
+    "homeConference": "Big Ten",
+    "homeClassification": "fbs",
+    "homeScore": 30,
+    "awayTeamId": 151,
+    "awayTeam": "East Carolina",
+    "awayConference": "American Athletic",
+    "awayClassification": "fbs",
+    "awayScore": 3,
+    "lines": [
+      {
+        "provider": "DraftKings",
+        "spread": -31.5,
+        "formattedSpread": null,
+        "spreadOpen": -30.5,
+        "overUnder": 54.5,
+        "overUnderOpen": 54.5,
+        "homeMoneyline": -12000,
+        "awayMoneyline": 3500
+      },
+      {
+        "provider": "Bovada",
+        "spread": -31.0,
+        "formattedSpread": null,
+        "spreadOpen": -30.0,
+        "overUnder": 54.0,
+        "overUnderOpen": 54.0,
+        "homeMoneyline": null,
+        "awayMoneyline": null
+      },
+      {
+        "provider": "ESPN Bet",
+        "spread": null,
+        "formattedSpread": null,
+        "spreadOpen": null,
+        "overUnder": null,
+        "overUnderOpen": null,
+        "homeMoneyline": null,
+        "awayMoneyline": null
+      }
+    ]
+  },
+  {
+    "id": 401525260,
+    "season": 2023,
+    "seasonType": "postseason",
+    "week": 1,
+    "startDate": "2024-01-01T22:00:00.000Z",
+    "homeTeamId": 130,
+    "homeTeam": "Michigan",
+    "homeConference": "Big Ten",
+    "homeClassification": "fbs",
+    "homeScore": 27,
+    "awayTeamId": 333,
+    "awayTeam": "Alabama",
+    "awayConference": "SEC",
+    "awayClassification": "fbs",
+    "awayScore": 20,
+    "lines": [
+      {
+        "provider": "DraftKings",
+        "spread": -1.5,
+        "formattedSpread": null,
+        "spreadOpen": -1.0,
+        "overUnder": 45.5,
+        "overUnderOpen": 45.5,
+        "homeMoneyline": -125,
+        "awayMoneyline": 105
+      },
+      {
+        "provider": "Bovada",
+        "spread": -1.5,
+        "formattedSpread": null,
+        "spreadOpen": -1.5,
+        "overUnder": 45.0,
+        "overUnderOpen": 45.0,
+        "homeMoneyline": -130,
+        "awayMoneyline": 110
+      }
+    ]
+  },
+  {
+    "id": 401540002,
+    "season": 2023,
+    "seasonType": "regular",
+    "week": 2,
+    "startDate": "2023-09-09T16:00:00.000Z",
+    "homeTeamId": 2641,
+    "homeTeam": "Texas Tech",
+    "homeConference": "Big 12",
+    "homeClassification": "fbs",
+    "homeScore": null,
+    "awayTeamId": 2294,
+    "awayTeam": "Iowa",
+    "awayConference": "Big Ten",
+    "awayClassification": "fbs",
+    "awayScore": null,
+    "lines": []
+  }
+]

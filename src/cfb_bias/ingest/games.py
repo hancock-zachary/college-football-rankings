@@ -5,8 +5,9 @@ import re
 import pandas as pd
 from sqlalchemy import Engine
 
-from cfb_bias.cfbd import CfbdClient, CfbdError
+from cfb_bias.cfbd import CfbdClient
 from cfb_bias.db import upsert
+from cfb_bias.ingest.fetch import get_season_types
 
 GAME_COLUMNS = [
     "game_id", "season", "week", "season_type", "start_date", "completed",
@@ -64,18 +65,9 @@ def teams_to_frame(records: list[dict], season: int) -> pd.DataFrame:
     return df
 
 
-def _fetch_games(client: CfbdClient, season: int, refresh: bool) -> list[dict]:
-    try:
-        return client.get("/games", {"year": season, "seasonType": "both"}, refresh=refresh)
-    except CfbdError:
-        regular = client.get("/games", {"year": season, "seasonType": "regular"}, refresh=refresh)
-        post = client.get("/games", {"year": season, "seasonType": "postseason"}, refresh=refresh)
-        return regular + post
-
-
 def pull_games(client: CfbdClient, engine: Engine, season: int, refresh: bool = False) -> int:
     """Fetch and upsert games and FBS team-seasons. Returns total rows written."""
-    games = games_to_frame(_fetch_games(client, season, refresh))
+    games = games_to_frame(get_season_types(client, "/games", season, refresh))
     teams = teams_to_frame(client.get("/teams/fbs", {"year": season}, refresh=refresh), season)
     return upsert(engine, "games", games, ["game_id"]) + upsert(
         engine, "team_seasons", teams, ["season", "team"]

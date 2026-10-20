@@ -1,0 +1,50 @@
+[
+  {
+    "id": 3057,
+    "name": "Michigan Stadium",
+    "city": "Ann Arbor",
+    "state": "MI",
+    "zip": "48104",
+    "countryCode": "US",
+    "timezone": "America/Detroit",
+    "latitude": 42.2658,
+    "longitude": -83.7487,
+    "elevation": "262.5",
+    "capacity": 107601,
+    "constructionYear": 1927,
+    "grass": true,
+    "dome": false
+  },
+  {
+    "id": 3,
+    "name": "Mercedes-Benz Superdome",
+    "city": "New Orleans",
+    "state": "LA",
+    "zip": "70112",
+    "countryCode": "US",
+    "timezone": "America/Chicago",
+    "latitude": 29.9511,
+    "longitude": -90.0812,
+    "elevation": "1.0",
+    "capacity": 73208,
+    "constructionYear": 1975,
+    "grass": false,
+    "dome": true
+  },
+  {
+    "id": 9999,
+    "name": "Unknown Field",
+    "city": null,
+    "state": null,
+    "zip": null,
+    "countryCode": null,
+    "timezone": null,
+    "latitude": null,
+    "longitude": null,
+    "elevation": null,
+    "capacity": null,
+    "constructionYear": null,
+    "grass": null,
+    "dome": null
+  }
+]

@@ -1,0 +1,109 @@
+[
+  {
+    "id": 1,
+    "firstName": "Jim",
+    "lastName": "Harbaugh",
+    "hireDate": "2015-01-01T00:00:00.000Z",
+    "seasons": [
+      {
+        "teamId": 130,
+        "school": "Michigan",
+        "conference": "Big Ten",
+        "year": 2023,
+        "games": 15,
+        "wins": 15,
+        "losses": 0,
+        "ties": 0,
+        "winPercentage": 1.0,
+        "preseasonRank": 2,
+        "postseasonRank": 1,
+        "srs": 10.5,
+        "spOverall": 20.1
+      }
+    ]
+  },
+  {
+    "id": 2,
+    "firstName": "Kirby",
+    "lastName": "Smart",
+    "hireDate": "2016-01-01T00:00:00.000Z",
+    "seasons": [
+      {
+        "teamId": 61,
+        "school": "Georgia",
+        "conference": "SEC",
+        "year": 2023,
+        "games": 14,
+        "wins": 13,
+        "losses": 1,
+        "ties": 0,
+        "winPercentage": 0.9285714285714286,
+        "preseasonRank": 1,
+        "postseasonRank": 3,
+        "srs": 10.5,
+        "spOverall": 20.1
+      }
+    ]
+  },
+  {
+    "id": 3,
+    "firstName": "Sherrone",
+    "lastName": "Moore",
+    "hireDate": "2023-01-01T00:00:00.000Z",
+    "seasons": [
+      {
+        "teamId": 2641,
+        "school": "Texas Tech",
+        "conference": "Big 12",
+        "year": 2023,
+        "games": 5,
+        "wins": 2,
+        "losses": 3,
+        "ties": 0,
+        "winPercentage": 0.4,
+        "preseasonRank": null,
+        "postseasonRank": null,
+        "srs": 10.5,
+        "spOverall": 20.1
+      },
+      {
+        "teamId": 2641,
+        "school": "Texas Tech",
+        "conference": "Big 12",
+        "year": 2023,
+        "games": 8,
+        "wins": 5,
+        "losses": 3,
+        "ties": 0,
+        "winPercentage": 0.625,
+        "preseasonRank": null,
+        "postseasonRank": null,
+        "srs": 10.5,
+        "spOverall": 20.1
+      }
+    ]
+  },
+  {
+    "id": 4,
+    "firstName": "Nick",
+    "lastName": "Saban",
+    "hireDate": "2007-01-01T00:00:00.000Z",
+    "seasons": [
+      {
+        "teamId": 333,
+        "school": "Alabama",
+        "conference": "SEC",
+        "year": 2023,
+        "games": 14,
+        "wins": 12,
+        "losses": 2,
+        "ties": 0,
+        "winPercentage": 0.8571428571428571,
+        "preseasonRank": 11,
+        "postseasonRank": 8,
+        "srs": 10.5,
+        "spOverall": 20.1
+      }
+    ]
+  }
+]

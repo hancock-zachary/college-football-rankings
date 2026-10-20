@@ -1,0 +1,328 @@
+[
+  {
+    "season": 2023,
+    "seasonType": "regular",
+    "week": 1,
+    "polls": [
+      {
+        "poll": "AP Top 25",
+        "isFinal": false,
+        "ranks": [
+          {
+            "rank": 1,
+            "teamId": 61,
+            "school": "Georgia",
+            "conference": "SEC",
+            "firstPlaceVotes": 40,
+            "points": 1500
+          },
+          {
+            "rank": 2,
+            "teamId": 130,
+            "school": "Michigan",
+            "conference": "SEC",
+            "firstPlaceVotes": 0,
+            "points": 1445
+          },
+          {
+            "rank": 3,
+            "teamId": 194,
+            "school": "Ohio State",
+            "conference": "SEC",
+            "firstPlaceVotes": 0,
+            "points": 1390
+          },
+          {
+            "rank": 4,
+            "teamId": 333,
+            "school": "Alabama",
+            "conference": "SEC",
+            "firstPlaceVotes": 0,
+            "points": 1335
+          },
+          {
+            "rank": 5,
+            "teamId": 251,
+            "school": "Texas",
+            "conference": "SEC",
+            "firstPlaceVotes": 0,
+            "points": 1280
+          },
+          {
+            "rank": 6,
+            "teamId": 213,
+            "school": "Penn State",
+            "conference": "SEC",
+            "firstPlaceVotes": 0,
+            "points": 1225
+          },
+          {
+            "rank": 7,
+            "teamId": 228,
+            "school": "Clemson",
+            "conference": "SEC",
+            "firstPlaceVotes": 0,
+            "points": 1170
+          },
+          {
+            "rank": 8,
+            "teamId": 99,
+            "school": "LSU",
+            "conference": "SEC",
+            "firstPlaceVotes": 0,
+            "points": 1115
+          },
+          {
+            "rank": 9,
+            "teamId": 264,
+            "school": "Washington",
+            "conference": "SEC",
+            "firstPlaceVotes": 0,
+            "points": 1060
+          },
+          {
+            "rank": 10,
+            "teamId": 2483,
+            "school": "Oregon",
+            "conference": "SEC",
+            "firstPlaceVotes": 0,
+            "points": 1005
+          },
+          {
+            "rank": 11,
+            "teamId": 2633,
+            "school": "Tennessee",
+            "conference": "SEC",
+            "firstPlaceVotes": 0,
+            "points": 950
+          },
+          {
+            "rank": 12,
+            "teamId": 30,
+            "school": "USC",
+            "conference": "SEC",
+            "firstPlaceVotes": 0,
+            "points": 895
+          },
+          {
+            "rank": 13,
+            "teamId": 52,
+            "school": "Florida State",
+            "conference": "SEC",
+            "firstPlaceVotes": 0,
+            "points": 840
+          },
+          {
+            "rank": 14,
+            "teamId": 87,
+            "school": "Notre Dame",
+            "conference": "SEC",
+            "firstPlaceVotes": 0,
+            "points": 785
+          },
+          {
+            "rank": 15,
+            "teamId": 254,
+            "school": "Utah",
+            "conference": "SEC",
+            "firstPlaceVotes": 0,
+            "points": 730
+          },
+          {
+            "rank": 16,
+            "teamId": 201,
+            "school": "Oklahoma",
+            "conference": "SEC",
+            "firstPlaceVotes": 0,
+            "points": 675
+          },
+          {
+            "rank": 17,
+            "teamId": 2306,
+            "school": "Kansas State",
+            "conference": "SEC",
+            "firstPlaceVotes": 0,
+            "points": 620
+          },
+          {
+            "rank": 18,
+            "teamId": 145,
+            "school": "Ole Miss",
+            "conference": "SEC",
+            "firstPlaceVotes": 0,
+            "points": 565
+          },
+          {
+            "rank": 19,
+            "teamId": 153,
+            "school": "North Carolina",
+            "conference": "SEC",
+            "firstPlaceVotes": 0,
+            "points": 510
+          },
+          {
+            "rank": 20,
+            "teamId": 245,
+            "school": "Texas A&M",
+            "conference": "SEC",
+            "firstPlaceVotes": 0,
+            "points": 455
+          },
+          {
+            "rank": 21,
+            "teamId": 275,
+            "school": "Wisconsin",
+            "conference": "SEC",
+            "firstPlaceVotes": 0,
+            "points": 400
+          },
+          {
+            "rank": 22,
+            "teamId": 204,
+            "school": "Oregon State",
+            "conference": "SEC",
+            "firstPlaceVotes": 0,
+            "points": 345
+          },
+          {
+            "rank": 23,
+            "teamId": 2390,
+            "school": "Miami",
+            "conference": "SEC",
+            "firstPlaceVotes": 0,
+            "points": 290
+          },
+          {
+            "rank": 24,
+            "teamId": 2294,
+            "school": "Iowa",
+            "conference": "SEC",
+            "firstPlaceVotes": 0,
+            "points": 235
+          },
+          {
+            "rank": 25,
+            "teamId": 97,
+            "school": "Louisville",
+            "conference": "SEC",
+            "firstPlaceVotes": 0,
+            "points": 180
+          }
+        ]
+      },
+      {
+        "poll": "Coaches Poll",
+        "isFinal": false,
+        "ranks": [
+          {
+            "rank": 1,
+            "teamId": 61,
+            "school": "Georgia",
+            "conference": "SEC",
+            "firstPlaceVotes": 40,
+            "points": 1500
+          },
+          {
+            "rank": 2,
+            "teamId": 130,
+            "school": "Michigan",
+            "conference": "SEC",
+            "firstPlaceVotes": 0,
+            "points": 1445
+          },
+          {
+            "rank": 3,
+            "teamId": 194,
+            "school": "Ohio State",
+            "conference": "SEC",
+            "firstPlaceVotes": 0,
+            "points": 1390
+          },
+          {
+            "rank": 4,
+            "teamId": 333,
+            "school": "Alabama",
+            "conference": "SEC",
+            "firstPlaceVotes": 0,
+            "points": 1335
+          },
+          {
+            "rank": 5,
+            "teamId": 251,
+            "school": "Texas",
+            "conference": "SEC",
+            "firstPlaceVotes": 0,
+            "points": 1280
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "season": 2023,
+    "seasonType": "postseason",
+    "week": 1,
+    "polls": [
+      {
+        "poll": "AP Top 25",
+        "isFinal": true,
+        "ranks": [
+          {
+            "rank": 1,
+            "teamId": 61,
+            "school": "Georgia",
+            "conference": "SEC",
+            "firstPlaceVotes": 40,
+            "points": 1500
+          },
+          {
+            "rank": 2,
+            "teamId": 130,
+            "school": "Michigan",
+            "conference": "SEC",
+            "firstPlaceVotes": 0,
+            "points": 1445
+          },
+          {
+            "rank": 3,
+            "teamId": 194,
+            "school": "Ohio State",
+            "conference": "SEC",
+            "firstPlaceVotes": 0,
+            "points": 1390
+          },
+          {
+            "rank": 4,
+            "teamId": 333,
+            "school": "Alabama",
+            "conference": "SEC",
+            "firstPlaceVotes": 0,
+            "points": 1335
+          },
+          {
+            "rank": 5,
+            "teamId": 251,
+            "school": "Texas",
+            "conference": "SEC",
+            "firstPlaceVotes": 0,
+            "points": 1280
+          }
+        ]
+      },
+      {
+        "poll": "Playoff Committee Rankings",
+        "isFinal": true,
+        "ranks": [
+          {
+            "rank": 1,
+            "teamId": 130,
+            "school": "Michigan",
+            "conference": "Big Ten",
+            "firstPlaceVotes": null,
+            "points": null
+          }
+        ]
+      }
+    ]
+  }
+]
