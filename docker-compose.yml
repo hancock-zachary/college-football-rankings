@@ -1,0 +1,15 @@
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: cfb
+      POSTGRES_PASSWORD: cfb
+      POSTGRES_DB: cfb
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./docker/initdb:/docker-entrypoint-initdb.d:ro
+
+volumes:
+  pgdata:

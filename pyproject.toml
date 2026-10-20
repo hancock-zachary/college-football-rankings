@@ -1,0 +1,35 @@
+[project]
+name = "cfb-bias"
+version = "0.1.0"
+description = "College football poll-bias analysis"
+readme = "README.md"
+authors = [
+    { name = "hancock-zachary", email = "zwhancock@gmail.com" }
+]
+requires-python = ">=3.14"
+dependencies = [
+    "httpx>=0.28.1",
+    "numpy>=2.5.4",
+    "pandas>=3.0.6",
+    "psycopg[binary]>=3.3.6",
+    "python-dotenv>=1.2.4",
+    "sqlalchemy>=2.1.5",
+    "typer>=0.27.3",
+]
+
+[project.scripts]
+cfb = "cfb_bias.cli:app"
+
+[build-system]
+requires = ["uv_build>=0.10.9,<0.11.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "ruff>=0.17.1",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["db: tests that require a running Postgres"]
