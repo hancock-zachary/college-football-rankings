@@ -1,12 +1,17 @@
 import typer
 
+from cfb_bias.config import load_settings
+from cfb_bias.db import get_engine, init_schema
+
 app = typer.Typer(help="College football poll-bias analysis.", no_args_is_help=True)
 
 
 @app.command("init-db")
 def init_db() -> None:
     """Create the database schema."""
-    raise typer.Exit(code=_not_implemented("init-db"))
+    settings = load_settings()
+    init_schema(get_engine(settings.database_url))
+    typer.echo("Database schema initialized.")
 
 
 @app.command()
