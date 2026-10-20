@@ -1,0 +1,42 @@
+[
+  {
+    "id": 130,
+    "school": "Michigan",
+    "mascot": "Wolverines",
+    "abbreviation": "MICH",
+    "alternateNames": [],
+    "conference": "Big Ten",
+    "division": "East",
+    "classification": "fbs"
+  },
+  {
+    "id": 333,
+    "school": "Alabama",
+    "mascot": "Crimson Tide",
+    "abbreviation": "ALA",
+    "alternateNames": [],
+    "conference": "SEC",
+    "division": "West",
+    "classification": "fbs"
+  },
+  {
+    "id": 2,
+    "school": "Auburn",
+    "mascot": "Tigers",
+    "abbreviation": "AUB",
+    "alternateNames": [],
+    "conference": "SEC",
+    "division": "West",
+    "classification": "fbs"
+  },
+  {
+    "id": 87,
+    "school": "Notre Dame",
+    "mascot": "Fighting Irish",
+    "abbreviation": "ND",
+    "alternateNames": [],
+    "conference": "FBS Independents",
+    "division": null,
+    "classification": "fbs"
+  }
+]
