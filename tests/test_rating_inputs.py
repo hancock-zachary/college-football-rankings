@@ -89,7 +89,7 @@ def test_include_postseason_flag():
                  _game(2, "C", "D", season=2019)])
     assert list(rating_games(df, 2019, None, False).game_id) == [2]
     out = rating_games(df, 2019, None, True)
-    assert list(out.game_id) == [1, 2] or list(out.game_id) == [2, 1]
+    assert sorted(out.game_id) == [1, 2]
     assert out.set_index("game_id").weight[1] == 0.5
 
 
@@ -107,3 +107,22 @@ def test_season_filter_and_reset_index():
     df = _frame([_game(1, "A", "B", season=2022), _game(2, "C", "D"), _game(3, "E", "F")])
     out = rating_games(df, 2023, None, True)
     assert list(out.index) == [0, 1] and list(out.game_id) == [2, 3]
+
+
+def test_nullable_boolean_inputs():
+    df = _frame([
+        _game(1, "A", "B"),
+        _game(2, "C", "D"),
+        _game(3, "E", "F", season=2021, stype="postseason"),
+        _game(4, "G", "H"),
+    ])
+    for c in ("completed", "neutral_site", "is_cfp"):
+        df[c] = df[c].astype("boolean")
+    df.loc[1, "completed"] = pd.NA
+    df.loc[2, "is_cfp"] = pd.NA
+    df.loc[3, "neutral_site"] = pd.NA
+    out = rating_games(df, 2023, None, True)
+    assert list(out.game_id) == [1, 4]
+    assert out.a_home.tolist() == [True, True]
+    assert out.neutral_site.tolist() == [False, False]
+    assert list(rating_games(df, 2021, None, True).game_id) == []

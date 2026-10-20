@@ -7,6 +7,11 @@ _COLUMNS = ["game_id", "week", "team_a", "team_b", "points_a", "points_b",
             "a_won", "neutral_site", "a_home", "weight"]
 
 
+def _truthy(col: pd.Series) -> pd.Series:
+    """Plain bool Series; null (NA/None/NaN) counts as False."""
+    return col.astype("boolean").fillna(False).astype(bool)
+
+
 def game_weight(season: int, season_type: str, is_cfp: bool) -> float:
     """Regular season (incl. conference title games) 1.0; postseason per era."""
     if season_type != "postseason":
@@ -19,7 +24,7 @@ def game_weight(season: int, season_type: str, is_cfp: bool) -> float:
 def rating_games(games: pd.DataFrame, season: int, through_week: int | None,
                  include_postseason: bool) -> pd.DataFrame:
     """Weighted, FBS-pooled game list for one season, ready for Colley/Massey."""
-    g = games[(games["season"] == season) & games["completed"].astype(bool)]
+    g = games[(games["season"] == season) & _truthy(games["completed"])]
     g = g[g["home_points"].notna() & g["away_points"].notna()]
 
     is_post = g["season_type"] == "postseason"
@@ -37,9 +42,10 @@ def rating_games(games: pd.DataFrame, season: int, through_week: int | None,
     points_a = g["home_points"].astype("int64")
     points_b = g["away_points"].astype("int64")
     weight = pd.Series(
-        [game_weight(season, st, bool(cfp)) for st, cfp in zip(g["season_type"], g["is_cfp"])],
+        [game_weight(season, st, cfp) for st, cfp in zip(g["season_type"], _truthy(g["is_cfp"]))],
         index=g.index, dtype=float)
 
+    neutral = _truthy(g["neutral_site"])
     out = pd.DataFrame({
         "game_id": g["game_id"],
         "week": g["week"],
@@ -48,8 +54,8 @@ def rating_games(games: pd.DataFrame, season: int, through_week: int | None,
         "points_a": points_a,
         "points_b": points_b,
         "a_won": (points_a > points_b).astype(bool),
-        "neutral_site": g["neutral_site"].astype(bool),
-        "a_home": ~g["neutral_site"].astype(bool),
+        "neutral_site": neutral,
+        "a_home": ~neutral,
         "weight": weight,
     })
     out = out[(points_a != points_b) & (weight > 0)]
