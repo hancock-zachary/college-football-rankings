@@ -3,6 +3,8 @@
 import numpy as np
 import pandas as pd
 
+from cfb_bias.ratings.bootstrap import bootstrap_ratings
+
 
 def _encode(games: pd.DataFrame, teams: list[str]):
     index = {t: i for i, t in enumerate(teams)}
@@ -40,18 +42,4 @@ def colley_bootstrap(
     games: pd.DataFrame, teams: list[str], n: int = 500, seed: int = 0
 ) -> pd.DataFrame:
     """Colley ratings with 5th/95th percentile bounds from resampling games."""
-    a, b, won, w = _encode(games, teams)
-    k = len(teams)
-    rating = _solve(a, b, won, w, k)
-    m = len(a)
-    if m == 0:
-        lo = hi = rating
-    else:
-        rng = np.random.default_rng(seed)
-        draws = np.empty((n, k))
-        for s in range(n):
-            idx = rng.integers(0, m, size=m)
-            draws[s] = _solve(a[idx], b[idx], won[idx], w[idx], k)
-        lo, hi = np.percentile(draws, [5, 95], axis=0)
-    out = pd.DataFrame({"team": teams, "rating": rating, "lo": lo, "hi": hi})
-    return out.sort_values("team").reset_index(drop=True)
+    return bootstrap_ratings(colley, games, teams, n=n, seed=seed)
