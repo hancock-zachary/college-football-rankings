@@ -51,10 +51,32 @@ def test_weight_zero_equals_absent_game():
 
 
 def test_home_field_is_absorbed_not_credited():
-    # A wins only at home, B wins only at home: h soaks up the home edge.
-    games = g(("A", "B", 20, 10, True, 1.0), ("B", "A", 20, 10, True, 1.0))
-    r = massey(games.assign(team_a=["A", "B"], team_b=["B", "A"]), ["A", "B"])
-    assert r["A"] == pytest.approx(r["B"], abs=1e-9)
+    # A hosts B and C and wins each by 10; B-C is a neutral-site tie. With the home
+    # coefficient, part of A's edge is credited to home field, so A rates lower than
+    # when the same games are neutral.
+    def games(home):
+        return g(
+            ("A", "B", 20, 10, home, 1.0),
+            ("A", "C", 20, 10, home, 1.0),
+            ("B", "C", 17, 17, False, 1.0),
+        )
+
+    home = massey(games(True), list("ABC"))
+    neutral = massey(games(False), list("ABC"))
+    assert home["A"] < neutral["A"] - 1.0
+
+
+def test_home_coefficient_is_not_shrunk_by_ridge():
+    # A hosts B and C and wins each by 10; B-C is a neutral tie. With a large ridge an
+    # unpenalised h (=10) explains the margins entirely, so ratings stay ~0; a missing
+    # or penalised h would leave A clearly positive.
+    games = g(
+        ("A", "B", 20, 10, True, 1.0),
+        ("A", "C", 20, 10, True, 1.0),
+        ("B", "C", 17, 17, False, 1.0),
+    )
+    r = massey(games, list("ABC"), ridge=100.0)
+    assert r.abs().max() < 1e-6
 
 
 def test_exact_two_team_solution():
