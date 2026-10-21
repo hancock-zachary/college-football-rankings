@@ -16,8 +16,13 @@ OUT_COLUMNS = ["poll", "poll_week", "coef", "se", "ci_lo", "ci_hi", "n_obs"]
 
 
 def preseason_decay(df: pd.DataFrame, y: str, poll: str) -> pd.DataFrame:
-    """Per-poll-week preseason coefficient. Weeks with NaN rows dropped; weeks with
-    < 10 rows, < 2 teams, or a singular fit are skipped."""
+    """Per-poll-week preseason coefficient. Rows with NaNs are dropped; weeks with
+    < 10 rows or < 2 teams, or whose fit yields non-finite estimates, are skipped.
+
+    A singular (collinear) design is not skipped: statsmodels fits it with a
+    pseudo-inverse, and the preseason coefficient stays identified as long as the
+    preseason score is not itself collinear with the other regressors.
+    """
     rows = []
     for week, g in df.groupby("poll_week", sort=True):
         g = g.dropna(subset=[y, *REGRESSORS])
