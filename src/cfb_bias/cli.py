@@ -13,8 +13,11 @@ from cfb_bias.config import load_settings
 from cfb_bias.coverage import coverage_table, write_coverage_md
 from cfb_bias.db import get_engine, init_schema, read_sql, upsert
 from cfb_bias.ingest.runner import ALL_SOURCES, parse_only, pull_all
+from cfb_bias.ingest.scorecard import ScorecardError, resolve_and_fetch
 from cfb_bias.ratings.inputs import POOLED_NON_FBS
 from cfb_bias.ratings.weekly import weekly_ratings
+
+INSTITUTIONS_CSV = Path("data/reference/team_institutions.csv")
 
 app = typer.Typer(help="College football poll-bias analysis.", no_args_is_help=True)
 
@@ -185,3 +188,21 @@ def analyze(
     for table, n in written.items():
         typer.echo(f"{table}: {n} rows")
     typer.echo(f"Done in {time.perf_counter() - started:.1f}s.")
+
+
+@app.command()
+def enrollment() -> None:
+    """Fetch undergraduate enrollment (College Scorecard) into school_enrollment."""
+    settings = load_settings()
+    institutions = pd.read_csv(INSTITUTIONS_CSV, dtype=str, keep_default_na=False)
+    try:
+        resolved, unresolved = resolve_and_fetch(settings.scorecard_api_key, institutions)
+    except ScorecardError as exc:
+        typer.echo(f"error: {exc}", err=True)
+        raise typer.Exit(code=1)
+    written = upsert(get_engine(settings.database_url), "school_enrollment", resolved, ["team"])
+    typer.echo(f"Resolved {len(resolved)} of {len(institutions)} teams; wrote {written} rows.")
+    if not unresolved.empty:
+        typer.echo(f"Unresolved ({len(unresolved)}) - fix team_institutions.csv:")
+        for rec in unresolved.itertuples(index=False):
+            typer.echo(f"  {rec.team}: {rec.institution}, {rec.state} ({rec.n_matches} matches)")
