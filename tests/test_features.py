@@ -3,7 +3,12 @@ import pandas as pd
 import pytest
 from sqlalchemy import text
 
-from cfb_bias.analysis.features import asof_ratings_week, build_features, poll_scores
+from cfb_bias.analysis.features import (
+    asof_ratings_week,
+    build_features,
+    poll_scores,
+    resume_through,
+)
 from cfb_bias.db import upsert
 
 
@@ -137,3 +142,54 @@ def test_quality_wins_and_bad_losses(seeded):
     assert a["bad_losses"] == 1       # lost to non-FBS FtFcs
     b = f.loc[(4, "FtB")]
     assert (b["quality_wins"], b["bad_losses"]) == (0, 0)  # lost to top-25 FtA
+
+
+def _results(team, outcomes):
+    """outcomes: list of (opp, opp_fbs, won) -> long-form team_results rows."""
+    return pd.DataFrame({
+        "team": team, "opp": [o[0] for o in outcomes], "opp_fbs": [o[1] for o in outcomes],
+        "week": range(1, len(outcomes) + 1), "won": [o[2] for o in outcomes],
+        "lost": [not o[2] for o in outcomes], "game_id": range(len(outcomes)),
+        "national": False,
+    })
+
+
+def test_quality_win_and_bad_loss_rank_boundaries():
+    # hand-built ranks as rank(method="min") yields them: TieA/TieB share rank 25
+    colley_rank = pd.Series({"R25": 25.0, "R26": 26.0, "TieA": 25.0, "TieB": 25.0,
+                             "R60": 60.0, "R61": 61.0})
+    wins = _results("W", [("R25", True, True), ("R26", True, True), ("NoRank", True, True),
+                          ("TieA", True, True), ("TieB", True, True)])
+    losses = _results("L", [("R60", True, False), ("R61", True, False),
+                            ("NoRank", True, False), ("FcsTeam", False, False)])
+    out = resume_through(pd.concat([wins, losses], ignore_index=True), 99, colley_rank)
+    # quality: rank 25 and both tied-at-25 teams; not rank 26 or an FBS team with NaN rank
+    assert out.loc["W", "quality_wins"] == 3
+    assert out.loc["W", "bad_losses"] == 0
+    # bad: rank 61 and the FCS loss; not rank 60 or an FBS team with NaN rank
+    assert out.loc["L", "bad_losses"] == 2
+    assert out.loc["L", "quality_wins"] == 0
+    # each boundary on its own
+    for opp, rank_expected in (("R25", 1), ("R26", 0), ("NoRank", 0), ("TieB", 1)):
+        one = resume_through(_results("W", [(opp, True, True)]), 99, colley_rank)
+        assert one.loc["W", "quality_wins"] == rank_expected, opp
+    for opp, fbs, bad_expected in (("R60", True, 0), ("R61", True, 1), ("NoRank", True, 0),
+                                   ("FcsTeam", False, 1)):
+        one = resume_through(_results("L", [(opp, fbs, False)]), 99, colley_rank)
+        assert one.loc["L", "bad_losses"] == bad_expected, opp
+
+
+def test_build_features_without_ratings_raises(seeded):
+    with seeded.begin() as conn:
+        conn.execute(text("DELETE FROM ratings_weekly WHERE season = :s"), {"s": S})
+    with pytest.raises(ValueError, match=rf"season {S}.*cfb ratings --season {S}"):
+        build_features(seeded, S)
+
+
+def test_build_features_preseason_only_without_ratings_ok(seeded):
+    with seeded.begin() as conn:
+        conn.execute(text("DELETE FROM ratings_weekly WHERE season = :s"), {"s": S})
+        conn.execute(text("DELETE FROM poll_ranks WHERE season = :s AND week > 1"), {"s": S})
+    f = build_features(seeded, S)
+    assert set(f["poll_week"]) == {1}
+    assert (f["colley"] == 0.5).all()

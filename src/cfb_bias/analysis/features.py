@@ -118,6 +118,11 @@ def build_features(engine: Engine, season: int) -> pd.DataFrame:
         "SELECT DISTINCT game_id FROM game_media WHERE season = :season AND outlet = ANY(:o)",
         {**params, "o": list(NATIONAL_OUTLETS)},
     )
+    if ratings.empty and any(pw > 1 for pw in poll_weeks):
+        raise ValueError(
+            f"season {season} has AP poll weeks after the preseason but no ratings_weekly "
+            f"rows; run `cfb ratings --season {season}` first"
+        )
     results = team_results(games, set(media["game_id"]))
     asof = asof_ratings_week(poll_weeks, set(ratings["week"]))
     fbs = set(teams)
