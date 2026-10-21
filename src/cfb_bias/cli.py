@@ -4,6 +4,7 @@ import pandas as pd
 import typer
 
 from cfb_bias.analysis.brand import build_team_brand
+from cfb_bias.analysis.features import build_features
 from cfb_bias.analysis.market import consensus_spread, market_ratings
 from cfb_bias.cfbd import CfbdClient, CfbdError
 from cfb_bias.config import load_settings
@@ -146,3 +147,16 @@ def market(
         )
         written = upsert(engine, "market_weekly", out, ["season", "week", "team"])
         typer.echo(f"Season {season}: wrote {written} market_weekly rows.")
+
+
+@app.command()
+def features(
+    from_season: int = typer.Option(2014, "--from", help="First season."),
+    to_season: int = typer.Option(2025, "--to", help="Last season (inclusive)."),
+) -> None:
+    """Build team-week features into team_week_features (AP poll weeks)."""
+    engine = get_engine(load_settings().database_url)
+    for season in range(from_season, to_season + 1):
+        df = build_features(engine, season)
+        written = upsert(engine, "team_week_features", df, ["season", "poll_week", "team"])
+        typer.echo(f"Season {season}: wrote {written} team_week_features rows.")
