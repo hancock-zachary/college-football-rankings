@@ -4,6 +4,7 @@ import pandas as pd
 import typer
 
 from cfb_bias.analysis.brand import build_team_brand
+from cfb_bias.analysis.market import consensus_spread, market_ratings
 from cfb_bias.cfbd import CfbdClient, CfbdError
 from cfb_bias.config import load_settings
 from cfb_bias.coverage import coverage_table, write_coverage_md
@@ -103,3 +104,45 @@ def brand(
         df = build_team_brand(engine, season)
         written = upsert(engine, "team_brand", df, ["season", "team"])
         typer.echo(f"Season {season}: wrote {written} team_brand rows.")
+
+
+@app.command()
+def market(
+    from_season: int = typer.Option(2014, "--from", help="First season."),
+    to_season: int = typer.Option(2025, "--to", help="Last season (inclusive)."),
+) -> None:
+    """Build market ratings from betting lines into market_weekly (AP poll weeks)."""
+    engine = get_engine(load_settings().database_url)
+    for season in range(from_season, to_season + 1):
+        params = {"season": season}
+        games = read_sql(engine, "SELECT * FROM games WHERE season = :season", params)
+        lines = read_sql(
+            engine, "SELECT game_id, spread FROM betting_lines WHERE season = :season", params
+        )
+        weeks = read_sql(
+            engine,
+            "SELECT DISTINCT week FROM poll_ranks WHERE season = :season "
+            "AND season_type = 'regular' AND poll = 'AP Top 25' ORDER BY week",
+            params,
+        )["week"].tolist()
+        if games.empty or lines.empty or not weeks:
+            typer.echo(f"Season {season}: no games, lines or AP poll weeks; skipped.")
+            continue
+        team_seasons = read_sql(
+            engine,
+            "SELECT team FROM team_seasons WHERE season = :season AND classification = 'fbs'",
+            params,
+        )
+        fbs_in_games = pd.concat([
+            games.loc[games["home_classification"] == "fbs", "home_team"],
+            games.loc[games["away_classification"] == "fbs", "away_team"],
+        ])
+        teams = sorted(set(team_seasons["team"]) | set(fbs_in_games.dropna()))
+        spreads = consensus_spread(lines)
+        out = pd.concat(
+            [market_ratings(games, spreads, teams, w).assign(season=season, week=w)
+             for w in weeks],
+            ignore_index=True,
+        )
+        written = upsert(engine, "market_weekly", out, ["season", "week", "team"])
+        typer.echo(f"Season {season}: wrote {written} market_weekly rows.")
