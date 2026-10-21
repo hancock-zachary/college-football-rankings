@@ -1,8 +1,11 @@
+from pathlib import Path
+
 import pandas as pd
 import typer
 
 from cfb_bias.cfbd import CfbdClient, CfbdError
 from cfb_bias.config import load_settings
+from cfb_bias.coverage import coverage_table, write_coverage_md
 from cfb_bias.db import get_engine, init_schema, read_sql, upsert
 from cfb_bias.ingest.runner import ALL_SOURCES, parse_only, pull_all
 from cfb_bias.ratings.inputs import POOLED_NON_FBS
@@ -75,11 +78,14 @@ def ratings(
 
 
 @app.command()
-def coverage() -> None:
-    """Report data coverage."""
-    raise typer.Exit(code=_not_implemented("coverage"))
-
-
-def _not_implemented(name: str) -> int:
-    typer.echo(f"{name}: not implemented yet", err=True)
-    return 1
+def coverage(
+    from_season: int = typer.Option(2000, "--from", help="First season."),
+    to_season: int = typer.Option(2025, "--to", help="Last season (inclusive)."),
+    out: Path = typer.Option(Path("docs/data-coverage.md"), "--out", help="Markdown output."),
+) -> None:
+    """Report per-season data coverage; print it and write markdown."""
+    engine = get_engine(load_settings().database_url)
+    df = coverage_table(engine, range(from_season, to_season + 1))
+    write_coverage_md(df, out)
+    typer.echo(df.to_string(index=False))
+    typer.echo(f"Wrote {out}")
