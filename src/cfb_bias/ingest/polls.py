@@ -38,6 +38,11 @@ def polls_to_frame(records: list[dict]) -> pd.DataFrame:
     return df
 
 
+def clean_polls(df: pd.DataFrame) -> pd.DataFrame:
+    """Drop rows missing any upsert key column (they cannot be stored or de-duplicated)."""
+    return df.dropna(subset=["season", "season_type", "week", "poll", "team"])
+
+
 def pull_polls(client: CfbdClient, engine: Engine, season: int, refresh: bool = False) -> int:
-    df = polls_to_frame(get_season_types(client, "/rankings", season, refresh))
+    df = clean_polls(polls_to_frame(get_season_types(client, "/rankings", season, refresh)))
     return upsert(engine, "poll_ranks", df, ["season", "season_type", "week", "poll", "team"])

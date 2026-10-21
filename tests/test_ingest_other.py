@@ -42,6 +42,19 @@ def test_polls_flatten():
     assert polls_to_frame([]).empty
 
 
+def test_polls_drop_rows_with_null_keys(pg_engine):
+    from cfb_bias.ingest.polls import clean_polls
+
+    recs = [{"season": 2023, "seasonType": "regular", "week": 1, "polls": [
+        {"poll": "AP Top 25", "ranks": [
+            {"rank": 1, "school": "A"}, {"rank": 2, "school": None}]},
+        {"poll": None, "ranks": [{"rank": 1, "school": "B"}]}]},
+        {"season": 2023, "seasonType": "regular", "week": None, "polls": [
+            {"poll": "AP Top 25", "ranks": [{"rank": 1, "school": "C"}]}]}]
+    df = clean_polls(polls_to_frame(recs))
+    assert list(df["team"]) == ["A"]
+
+
 def test_lines_one_row_per_provider():
     df = lines_to_frame(load_fixture("lines_2023_sample.json"))
     assert list(df.columns) == [

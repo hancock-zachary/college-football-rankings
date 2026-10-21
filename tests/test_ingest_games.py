@@ -74,6 +74,15 @@ def test_missing_keys_become_null_and_empty_input_ok():
     assert games_to_frame([]).empty
 
 
+def test_start_date_mixed_iso_formats():
+    recs = [{"id": 1, "startDate": "2023-09-02T16:00:00.000Z"},
+            {"id": 2, "startDate": "2023-09-02T16:00:00Z"}]
+    df = games_to_frame(recs)
+    assert df["start_date"].notna().all()
+    assert str(df["start_date"].dt.tz) == "UTC"
+    assert df["start_date"].iloc[0] == df["start_date"].iloc[1]
+
+
 def test_teams_to_frame():
     df = teams_to_frame(load_fixture("teams_fbs_2023_sample.json"), 2023)
     assert list(df.columns) == ["season", "team", "conference", "classification"]

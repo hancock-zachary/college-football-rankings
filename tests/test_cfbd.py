@@ -1,7 +1,7 @@
 import httpx
 import pytest
 
-from cfb_bias.cfbd import CfbdClient, CfbdError
+from cfb_bias.cfbd import CfbdAuthError, CfbdClient, CfbdError, CfbdQuotaError
 
 
 def make_client(tmp_path, handler, key="k", min_interval=0):
@@ -135,3 +135,51 @@ def test_min_interval_only_between_live_requests(tmp_path, monkeypatch):
     c.get("/games", {"year": 2})  # live
     assert len(sleeps) == 1
     assert 0 < sleeps[0] <= 0.5
+
+
+def test_error_subclasses_by_cause(tmp_path):
+    for key, handler, exc in [
+        (None, lambda r: httpx.Response(200), CfbdAuthError),
+        ("k", lambda r: httpx.Response(401), CfbdAuthError),
+        ("k", lambda r: httpx.Response(403), CfbdAuthError),
+        ("k", lambda r: httpx.Response(429), CfbdQuotaError),
+    ]:
+        with pytest.raises(exc):
+            make_client(tmp_path, handler, key=key).get("/games")
+    assert issubclass(CfbdAuthError, CfbdError) and issubclass(CfbdQuotaError, CfbdError)
+
+
+def test_429_message_names_key(tmp_path):
+    c = make_client(tmp_path, lambda r: httpx.Response(429))
+    with pytest.raises(CfbdError, match="quota exceeded for CFBD_API_KEY"):
+        c.get("/games")
+
+
+def test_transport_error_retried_then_succeeds(tmp_path, monkeypatch):
+    sleeps = []
+    monkeypatch.setattr("time.sleep", sleeps.append)
+    n = []
+
+    def handler(req):
+        n.append(1)
+        if len(n) < 3:
+            raise httpx.ConnectError("boom", request=req)
+        return httpx.Response(200, json=[{"ok": True}])
+
+    assert make_client(tmp_path, handler).get("/games") == [{"ok": True}]
+    assert sleeps == [1, 2]
+
+
+def test_transport_error_exhausts_retries_naming_path(tmp_path, monkeypatch):
+    sleeps = []
+    monkeypatch.setattr("time.sleep", sleeps.append)
+    calls = []
+
+    def handler(req):
+        calls.append(1)
+        raise httpx.ReadTimeout("slow", request=req)
+
+    with pytest.raises(CfbdError, match=r"/games"):
+        make_client(tmp_path, handler).get("/games")
+    assert len(calls) == 4 and sleeps == [1, 2, 4]
+    assert not list(tmp_path.rglob("*.json"))

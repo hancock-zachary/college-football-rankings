@@ -46,7 +46,7 @@ def games_to_frame(records: list[dict]) -> pd.DataFrame:
         df[col] = pd.to_numeric(df[col]).astype("Int64")
     for col in _BOOL_COLS + ["is_cfp"]:
         df[col] = df[col].astype("boolean")
-    df["start_date"] = pd.to_datetime(df["start_date"], utc=True)
+    df["start_date"] = pd.to_datetime(df["start_date"], utc=True, format="ISO8601")
     return df
 
 

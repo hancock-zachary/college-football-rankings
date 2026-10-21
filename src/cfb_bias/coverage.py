@@ -17,6 +17,7 @@ COLUMNS = [
     "cfp_games_flagged", "recruiting_teams", "talent_teams",
 ]
 _PARAMS_SQL = "season BETWEEN :lo AND :hi"
+_HAS_FBS = "(home_classification = 'fbs' OR away_classification = 'fbs')"
 
 
 def _counts(engine: Engine, sql: str, params: dict) -> pd.Series:
@@ -35,11 +36,12 @@ def coverage_table(engine: Engine, seasons: range) -> pd.DataFrame:
     fbs = _counts(engine, f"SELECT season, count(*) AS n FROM team_seasons "
                           f"WHERE {w} AND classification = 'fbs' GROUP BY season", p)
     completed = _counts(engine, f"SELECT season, count(*) AS n FROM games "
-                                f"WHERE {w} AND completed GROUP BY season", p)
+                                f"WHERE {w} AND completed AND {_HAS_FBS} GROUP BY season", p)
     with_lines = _counts(
         engine,
         "SELECT g.season, count(*) AS n FROM games g WHERE g.season BETWEEN :lo AND :hi "
-        "AND g.completed AND EXISTS (SELECT 1 FROM betting_lines b WHERE b.game_id = g.game_id) "
+        "AND g.completed AND (g.home_classification = 'fbs' OR g.away_classification = 'fbs') "
+        "AND EXISTS (SELECT 1 FROM betting_lines b WHERE b.game_id = g.game_id) "
         "GROUP BY g.season", p)
     cfp_games = _counts(engine, f"SELECT season, count(*) AS n FROM games "
                                 f"WHERE {w} AND is_cfp GROUP BY season", p)

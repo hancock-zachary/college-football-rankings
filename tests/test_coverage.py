@@ -8,9 +8,10 @@ from cfb_bias.db import upsert
 AP, COACHES, CFP = "AP Top 25", "Coaches Poll", "Playoff Committee Rankings"
 
 
-def _game(gid, season, completed=True, is_cfp=False):
+def _game(gid, season, completed=True, is_cfp=False, home="fbs", away="fbs"):
     return {"game_id": gid, "season": season, "week": 1, "season_type": "regular",
-            "completed": completed, "is_cfp": is_cfp}
+            "completed": completed, "is_cfp": is_cfp,
+            "home_classification": home, "away_classification": away}
 
 
 def _poll(season, week, poll, season_type="regular", team="A"):
@@ -31,11 +32,13 @@ def seeded(pg_engine):
     games = [
         _game(970001, 2097), _game(970002, 2097), _game(970003, 2097),
         _game(970004, 2097, is_cfp=True), _game(970005, 2097, completed=False),
+        _game(970006, 2097, home="fcs", away="fcs"),
+        _game(970007, 2097, home="fcs", away="fbs"),
         _game(980001, 2098), _game(980002, 2098), _game(980003, 2098),
     ]
     upsert(pg_engine, "games", pd.DataFrame(games), ["game_id"])
     lines = [(970001, 2097, "p1"), (970001, 2097, "p2"), (970004, 2097, "p1"),
-             (970005, 2097, "p1"), (980001, 2098, "p1")]
+             (970005, 2097, "p1"), (970006, 2097, "p1"), (980001, 2098, "p1")]
     upsert(pg_engine, "betting_lines",
            pd.DataFrame(lines, columns=["game_id", "season", "provider"]),
            ["game_id", "provider"])
@@ -63,8 +66,8 @@ def test_coverage_table_values(seeded):
     df = coverage_table(seeded, range(2097, 2100)).set_index("season")
     assert list(df.index) == [2097, 2098, 2099]
     a, b, c = df.loc[2097], df.loc[2098], df.loc[2099]
-    assert (a.fbs_teams, a.games_completed, a.games_with_lines) == (2, 4, 2)
-    assert a.pct_games_with_lines == 50.0
+    assert (a.fbs_teams, a.games_completed, a.games_with_lines) == (2, 5, 2)
+    assert a.pct_games_with_lines == 40.0
     assert a.ap_poll_weeks == 4  # regular 0,1,2 + postseason 1
     assert bool(a.ap_has_preseason) is True
     assert (a.coaches_poll_weeks, a.cfp_poll_weeks, a.cfp_games_flagged) == (2, 2, 1)
