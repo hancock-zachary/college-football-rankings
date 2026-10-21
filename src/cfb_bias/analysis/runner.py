@@ -71,13 +71,16 @@ def compute_start_week(engine: Engine, seasons: range,
     return choose_start_week(rating_stability(ratings), threshold=threshold)
 
 
-def _replace(engine: Engine, table: str, where: str, params: dict) -> None:
-    with engine.begin() as conn:
-        conn.execute(text(f"DELETE FROM {table} WHERE {where}"), params)
+KEYS = {
+    "bias_coefficients": ["analysis", "variable"],
+    "team_bias": ["analysis", "team"],
+    "preseason_decay": ["poll", "poll_week"],
+    "analysis_params": ["key"],
+}
 
 
-def run_one(engine: Engine, name: str, spec: Analysis, df: pd.DataFrame) -> tuple[int, int]:
-    """Run one analysis and replace its rows; returns (bias_coefficients, team_bias) rows."""
+def run_one(name: str, spec: Analysis, df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """One analysis, no writes: (bias_coefficients rows, team_bias rows)."""
     rows = df[df[spec.y].notna()]
     if spec.first_season is not None:
         rows = rows[rows["season"] >= spec.first_season]
@@ -88,45 +91,53 @@ def run_one(engine: Engine, name: str, spec: Analysis, df: pd.DataFrame) -> tupl
     idx = result.y_resid.index
     teams = team_bias(result.y_resid, rows.loc[idx, "team"], rows.loc[idx, "season"])
     teams.insert(0, "analysis", name)
-    for table in ("bias_coefficients", "team_bias"):
-        _replace(engine, table, "analysis = :a", {"a": name})
-    n_coef = upsert(engine, "bias_coefficients", coefs, ["analysis", "variable"])
-    n_team = upsert(engine, "team_bias", teams, ["analysis", "team"])
-    return n_coef, n_team
+    return coefs, teams
+
+
+def _stack(frames) -> pd.DataFrame:
+    """Concatenate, skipping empty frames (an empty result writes nothing)."""
+    kept = [f for f in frames if not f.empty]
+    return pd.concat(kept, ignore_index=True) if kept else pd.DataFrame()
+
+
+def _fmt(v: int | None) -> str:
+    return "none" if v is None else str(v)
 
 
 def run_analyses(engine: Engine, seasons: range, start_week: int | None = None) -> dict[str, int]:
-    """All six bias analyses plus preseason decay; returns rows written per table."""
+    """All six bias analyses plus preseason decay; returns rows written per table.
+
+    Every result is computed before anything is written, and all deletes and writes
+    happen in one transaction: a failed run leaves the previous results intact.
+    """
     threshold = "override"
     if start_week is None:
         start_week = compute_start_week(engine, seasons)
         threshold = str(STABILITY_THRESHOLD)
     df = load_frame(engine, seasons)
 
-    written = {"bias_coefficients": 0, "team_bias": 0, "preseason_decay": 0,
-               "analysis_params": 0}
     window = df[df["poll_week"] >= start_week]
-    for name, spec in ANALYSES.items():
-        n_coef, n_team = run_one(engine, name, spec, window)
-        written["bias_coefficients"] += n_coef
-        written["team_bias"] += n_team
-
-    half_lives = {}
+    results = {name: run_one(name, spec, window) for name, spec in ANALYSES.items()}
     decay_rows = df[df["poll_week"] >= DECAY_FIRST_WEEK]
-    for poll, y in DECAY_POLLS.items():
-        decay = preseason_decay(decay_rows, y, poll)
-        _replace(engine, "preseason_decay", "poll = :p", {"p": poll})
-        written["preseason_decay"] += upsert(engine, "preseason_decay", decay,
-                                             ["poll", "poll_week"])
-        half_lives[poll] = half_life(decay)
-
-    def fmt(v: int | None) -> str:
-        return "none" if v is None else str(v)
+    decays = {poll: preseason_decay(decay_rows, y, poll) for poll, y in DECAY_POLLS.items()}
 
     params = pd.DataFrame({
-        "key": ["start_week", "stability_threshold", "half_life_ap", "half_life_coaches"],
-        "value": [str(start_week), threshold, fmt(half_lives["AP Top 25"]),
-                  fmt(half_lives["Coaches Poll"])],
+        "key": ["start_week", "stability_threshold", "season_from", "season_to",
+                "half_life_ap", "half_life_coaches"],
+        "value": [str(start_week), threshold, str(seasons.start), str(seasons.stop - 1),
+                  _fmt(half_life(decays["AP Top 25"])), _fmt(half_life(decays["Coaches Poll"]))],
     })
-    written["analysis_params"] = upsert(engine, "analysis_params", params, ["key"])
-    return written
+    out = {
+        "bias_coefficients": _stack(c for c, _ in results.values()),
+        "team_bias": _stack(t for _, t in results.values()),
+        "preseason_decay": _stack(decays.values()),
+        "analysis_params": params,
+    }
+    with engine.begin() as conn:
+        for table in ("bias_coefficients", "team_bias"):
+            conn.execute(text(f"DELETE FROM {table} WHERE analysis = ANY(:a)"),
+                         {"a": list(ANALYSES)})
+        conn.execute(text("DELETE FROM preseason_decay WHERE poll = ANY(:p)"),
+                     {"p": list(DECAY_POLLS)})
+        return {table: upsert(engine, table, frame, KEYS[table], conn=conn)
+                for table, frame in out.items()}

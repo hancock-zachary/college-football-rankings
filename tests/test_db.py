@@ -57,3 +57,11 @@ def test_upsert_returns_row_count_and_params_in_read_sql(clean):
     assert upsert(clean, "venues", df, ["venue_id"]) == 2
     out = read_sql(clean, "select name from venues where venue_id = :v", {"v": 2})
     assert out["name"].tolist() == ["B"]
+
+
+def test_upsert_joins_caller_transaction(clean):
+    df = pd.DataFrame({"season": [2023], "team": ["Rollback U"], "rank": [1], "points": [1.0]})
+    with pytest.raises(RuntimeError), clean.begin() as conn:
+        assert upsert(clean, "team_recruiting", df, ["season", "team"], conn=conn) == 1
+        raise RuntimeError("abort")
+    assert len(read_sql(clean, "select * from team_recruiting")) == 0

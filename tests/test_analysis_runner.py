@@ -6,7 +6,7 @@ from sqlalchemy import text
 from typer.testing import CliRunner
 
 from cfb_bias import cli
-from cfb_bias.analysis import dml
+from cfb_bias.analysis import dml, runner
 from cfb_bias.analysis.runner import ANALYSES, run_analyses
 from cfb_bias.cli import app
 from cfb_bias.db import read_sql, upsert
@@ -133,11 +133,54 @@ def test_run_analyses_writes_all_six_and_recovers_planted_team(seeded):
 
     p = params(seeded)
     assert p["start_week"] == "3"
+    assert p["season_from"] == "2501" and p["season_to"] == "2503"
     assert {"stability_threshold", "half_life_ap", "half_life_coaches"} <= set(p)
     assert written == {
         "bias_coefficients": len(coefs), "team_bias": len(tb),
         "preseason_decay": len(decay), "analysis_params": len(p),
     }
+
+
+OUTPUT_TABLES = {
+    "bias_coefficients": ["analysis", "variable"], "team_bias": ["analysis", "team"],
+    "preseason_decay": ["poll", "poll_week"], "analysis_params": ["key"],
+}
+
+
+def snapshot(engine) -> dict[str, pd.DataFrame]:
+    return {t: read_sql(engine, f"SELECT * FROM {t} ORDER BY {', '.join(k)}")
+            for t, k in OUTPUT_TABLES.items()}
+
+
+def test_failed_rerun_leaves_previous_results_intact(seeded, monkeypatch):
+    prior = {
+        "bias_coefficients": pd.DataFrame({"analysis": list(ANALYSES), "variable": "sec",
+                                           "coef": 0.5, "n_obs": 10}),
+        "team_bias": pd.DataFrame({"analysis": list(ANALYSES), "team": PLANTED,
+                                   "mean_resid": 0.2, "significant": True}),
+        "preseason_decay": pd.DataFrame({"poll": ["AP Top 25", "Coaches Poll"],
+                                         "poll_week": [2, 2], "coef": [0.4, 0.3]}),
+        "analysis_params": pd.DataFrame({"key": ["start_week", "season_from"],
+                                         "value": ["5", "2014"]}),
+    }
+    for table, df in prior.items():
+        upsert(seeded, table, df, OUTPUT_TABLES[table])
+    before = snapshot(seeded)
+
+    real = runner.partial_out
+
+    def failing(df, y, x_cols, b_cols, **kw):
+        if y == "cfp_rank_score":  # last analysis: the others have already run
+            raise ValueError("boom")
+        return real(df, y, x_cols, b_cols, **kw)
+
+    monkeypatch.setattr(runner, "partial_out", failing)
+    with pytest.raises(ValueError, match="boom"):
+        run_analyses(seeded, SEASONS, start_week=3)
+
+    after = snapshot(seeded)
+    for table in OUTPUT_TABLES:
+        pd.testing.assert_frame_equal(after[table], before[table], obj=table)
 
 
 def test_start_week_computed_from_colley_stability(seeded):

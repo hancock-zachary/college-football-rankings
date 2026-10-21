@@ -3,7 +3,7 @@
 from importlib import resources
 
 import pandas as pd
-from sqlalchemy import Engine, create_engine, text
+from sqlalchemy import Connection, Engine, create_engine, text
 
 
 def get_engine(url: str) -> Engine:
@@ -17,10 +17,12 @@ def init_schema(engine: Engine) -> None:
         conn.exec_driver_sql(ddl)
 
 
-def upsert(engine: Engine, table: str, df: pd.DataFrame, key: list[str]) -> int:
+def upsert(engine: Engine, table: str, df: pd.DataFrame, key: list[str],
+           conn: Connection | None = None) -> int:
     """INSERT ... ON CONFLICT (key) DO UPDATE. Returns number of rows written.
 
     NaN/NaT/None become NULL. An empty DataFrame writes nothing and returns 0.
+    With `conn`, the write joins that open transaction instead of committing its own.
     """
     if df.empty:
         return 0
@@ -42,8 +44,11 @@ def upsert(engine: Engine, table: str, df: pd.DataFrame, key: list[str]) -> int:
         {f"p{i}": v for i, v in enumerate(rec)}
         for rec in clean.itertuples(index=False, name=None)
     ]
-    with engine.begin() as conn:
+    if conn is not None:
         conn.execute(text(sql), rows)
+    else:
+        with engine.begin() as own:
+            own.execute(text(sql), rows)
     return len(rows)
 
 
