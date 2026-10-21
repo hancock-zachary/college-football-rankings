@@ -1,9 +1,12 @@
+import pandas as pd
 import typer
 
 from cfb_bias.cfbd import CfbdClient, CfbdError
 from cfb_bias.config import load_settings
-from cfb_bias.db import get_engine, init_schema
+from cfb_bias.db import get_engine, init_schema, read_sql, upsert
 from cfb_bias.ingest.runner import ALL_SOURCES, parse_only, pull_all
+from cfb_bias.ratings.inputs import POOLED_NON_FBS
+from cfb_bias.ratings.weekly import weekly_ratings
 
 app = typer.Typer(help="College football poll-bias analysis.", no_args_is_help=True)
 
@@ -44,9 +47,31 @@ def pull(
 
 
 @app.command()
-def ratings() -> None:
-    """Compute poll-free team ratings."""
-    raise typer.Exit(code=_not_implemented("ratings"))
+def ratings(
+    season: int = typer.Option(..., "--season", help="Season year to rate."),
+    bootstrap: int = typer.Option(500, "--bootstrap", help="Bootstrap resamples per rating."),
+) -> None:
+    """Compute poll-free weekly team ratings into ratings_weekly."""
+    engine = get_engine(load_settings().database_url)
+    params = {"season": season}
+    games = read_sql(engine, "SELECT * FROM games WHERE season = :season", params)
+    completed = games[games["completed"].astype("boolean").fillna(False).astype(bool)]
+    if completed.empty:
+        typer.echo(f"error: no completed games for season {season}", err=True)
+        raise typer.Exit(code=1)
+    team_seasons = read_sql(
+        engine,
+        "SELECT team FROM team_seasons WHERE season = :season AND classification = 'fbs'",
+        params,
+    )
+    fbs_in_games = pd.concat([
+        games.loc[games["home_classification"] == "fbs", "home_team"],
+        games.loc[games["away_classification"] == "fbs", "away_team"],
+    ])
+    teams = sorted(set(team_seasons["team"]) | set(fbs_in_games.dropna()) | {POOLED_NON_FBS})
+    out = weekly_ratings(games, teams, season, n_boot=bootstrap)
+    written = upsert(engine, "ratings_weekly", out, ["season", "week", "team", "method"])
+    typer.echo(f"Season {season}: wrote {written} ratings_weekly rows.")
 
 
 @app.command()
