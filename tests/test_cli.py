@@ -20,3 +20,15 @@ def test_enrollment_without_key_exits_1(monkeypatch):
     result = CliRunner().invoke(app, ["enrollment"])
     assert result.exit_code == 1
     assert "SCORECARD_API_KEY" in result.output
+
+
+def test_institutions_csv_resolved_from_repo_not_cwd(tmp_path, monkeypatch):
+    from pathlib import Path
+
+    from cfb_bias import cli
+
+    monkeypatch.chdir(tmp_path)
+    assert cli.INSTITUTIONS_CSV.is_absolute()
+    assert cli.INSTITUTIONS_CSV.is_file()
+    repo = Path(__file__).resolve().parents[1]
+    assert cli.INSTITUTIONS_CSV == repo / "data" / "reference" / "team_institutions.csv"

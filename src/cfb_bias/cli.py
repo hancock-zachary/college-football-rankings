@@ -17,7 +17,8 @@ from cfb_bias.ingest.scorecard import ScorecardError, resolve_and_fetch
 from cfb_bias.ratings.inputs import POOLED_NON_FBS
 from cfb_bias.ratings.weekly import weekly_ratings
 
-INSTITUTIONS_CSV = Path("data/reference/team_institutions.csv")
+REPO_ROOT = Path(__file__).resolve().parents[2]  # src/cfb_bias/cli.py -> repo
+INSTITUTIONS_CSV = REPO_ROOT / "data" / "reference" / "team_institutions.csv"
 
 app = typer.Typer(help="College football poll-bias analysis.", no_args_is_help=True)
 
