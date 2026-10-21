@@ -25,11 +25,16 @@ class DmlResult:
     n_obs: int
     n_teams: int
     n_dropped: int
+    joint_wald: dict | None = None  # {"stat", "df", "p_value"}: all brand coefficients = 0
 
 
 def make_learner(seed: int) -> HistGradientBoostingRegressor:
-    """Nuisance learner for E[y|X] and E[b|X]."""
-    return HistGradientBoostingRegressor(random_state=seed)
+    """Nuisance learner for E[y|X] and E[b|X].
+
+    early_stopping is pinned off: sklearn's "auto" turns it on above 10,000 rows,
+    which would give large and small analyses different learners.
+    """
+    return HistGradientBoostingRegressor(early_stopping=False, random_state=seed)
 
 
 def _as_float(frame: pd.DataFrame | pd.Series) -> np.ndarray:
@@ -86,6 +91,12 @@ def partial_out(
     clusters = pd.factorize(data[cluster_col])[0]
     fit = sm.OLS(y_tilde, b_tilde).fit(cov_type="cluster", cov_kwds={"groups": clusters})
     ci = np.asarray(fit.conf_int(0.05))
+    wald = fit.wald_test(np.eye(len(b_cols)), scalar=True)  # chi2, cluster-robust cov
+    joint_wald = {
+        "stat": float(wald.statistic),
+        "df": int(wald.df_denom),
+        "p_value": float(wald.pvalue),
+    }
     coefficients = pd.DataFrame(
         {
             "variable": b_cols,
@@ -103,4 +114,5 @@ def partial_out(
         n_obs=len(data),
         n_teams=int(pd.unique(clusters).size),
         n_dropped=n_dropped,
+        joint_wald=joint_wald,
     )

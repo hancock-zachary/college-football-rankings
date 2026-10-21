@@ -8,6 +8,7 @@ from sklearn.ensemble import HistGradientBoostingRegressor
 
 from cfb_bias.analysis import dml
 from cfb_bias.analysis.dml import DmlResult, partial_out
+from cfb_bias.analysis.dml import make_learner as production_learner
 
 THETA = 0.3
 
@@ -139,3 +140,31 @@ def test_rows_with_missing_cluster_dropped_and_counted():
     assert r.n_dropped == 3
     assert not r.y_resid.index.isin([3, 4, 7]).any()
     assert r.n_teams == 40
+
+
+def test_production_learner_never_early_stops():
+    # production_learner was bound at import, before the fast_learner monkeypatch
+    params = production_learner(3).get_params()
+    assert params["early_stopping"] is False
+    assert params["random_state"] == 3
+
+
+def _two_brand(theta: float, seed: int) -> pd.DataFrame:
+    df = synthetic(n_seasons=8, n_teams=60, theta=theta, seed=seed).rename(columns={"b": "b1"})
+    df["b2"] = np.random.default_rng(seed + 100).normal(size=len(df))  # independent, no effect
+    return df
+
+
+def test_joint_wald_rejects_when_an_effect_exists():
+    r = partial_out(_two_brand(THETA, seed=1), "y", ["x1", "x2"], ["b1", "b2"])
+    w = r.joint_wald
+    assert set(w) == {"stat", "df", "p_value"}
+    assert w["df"] == 2
+    assert w["stat"] > 0
+    assert w["p_value"] < 0.05
+
+
+def test_joint_wald_does_not_reject_under_null():
+    r = partial_out(_two_brand(0.0, seed=2), "y", ["x1", "x2"], ["b1", "b2"])
+    assert r.joint_wald["df"] == 2
+    assert r.joint_wald["p_value"] > 0.05
