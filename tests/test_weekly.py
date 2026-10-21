@@ -88,14 +88,16 @@ def test_final_week_99_includes_cfp_only_with_weight():
     bowl = _game(4, "D", "A", week=1, stype="postseason", hp=40, ap=3)
     cfp = _game(5, "D", "A", week=2, stype="postseason", hp=40, ap=3, cfp=True)
 
-    def final(rows):
+    def final(rows, cols="rating"):
         out = weekly_ratings(_frame(rows), TEAMS, 2024, n_boot=5)
-        last = out[(out.week == 3)].set_index(["method", "team"])["rating"]
-        w99 = out[(out.week == 99)].set_index(["method", "team"])["rating"]
+        last = out[(out.week == 3)].set_index(["method", "team"])[cols]
+        w99 = out[(out.week == 99)].set_index(["method", "team"])[cols]
         return last, w99
 
     last, w99 = final(reg + [bowl])
     pd.testing.assert_series_equal(last, w99)
+    last_all, w99_all = final(reg + [bowl], ["rating", "lo", "hi"])
+    pd.testing.assert_frame_equal(last_all, w99_all)
     last, w99 = final(reg + [cfp])
     assert not (last - w99).abs().lt(1e-9).all()
     assert w99[("colley", "D")] > last[("colley", "D")]

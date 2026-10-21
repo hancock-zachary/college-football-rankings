@@ -104,3 +104,46 @@ def test_bootstrap_forwards_kwargs():
     a = massey_bootstrap(games, list("ABC"), n=10, ridge=1.0)["rating"]
     b = massey_bootstrap(games, list("ABC"), n=10, ridge=100.0)["rating"]
     assert not np.allclose(a, b)
+
+
+def _dense_reference(games, teams, cap=28, ridge=1.0):
+    """The original dense-lstsq formulation, kept to check the normal-equation fit."""
+    index = {t: i for i, t in enumerate(teams)}
+    k, m = len(teams), len(games)
+    a = games["team_a"].map(index).to_numpy()
+    b = games["team_b"].map(index).to_numpy()
+    w = games["weight"].to_numpy(dtype=float)
+    margin = np.clip((games["points_a"] - games["points_b"]).to_numpy(float), -cap, cap)
+    X = np.zeros((m, k + 1))
+    X[np.arange(m), a] = 1.0
+    X[np.arange(m), b] = -1.0
+    X[:, k] = games["a_home"].to_numpy(float)
+    sw = np.sqrt(w)
+    pen = np.zeros((k, k + 1))
+    pen[:, :k] = np.sqrt(ridge) * np.eye(k)
+    coef, *_ = np.linalg.lstsq(
+        np.vstack([X * sw[:, None], pen]), np.concatenate([margin * sw, np.zeros(k)]),
+        rcond=None)
+    r = coef[:k]
+    played = np.zeros(k, dtype=bool)
+    played[a[w > 0]] = True
+    played[b[w > 0]] = True
+    return np.where(played, r - r[played].mean(), 0.0)
+
+
+def test_fast_massey_matches_dense_reference():
+    rng = np.random.default_rng(7)
+    teams = [f"T{i}" for i in range(20)]
+    m = 80
+    a = rng.integers(0, 20, m)
+    b = (a + rng.integers(1, 20, m)) % 20
+    games = pd.DataFrame({
+        "team_a": [teams[i] for i in a], "team_b": [teams[i] for i in b],
+        "points_a": rng.integers(0, 60, m), "points_b": rng.integers(0, 60, m),
+        "weight": rng.choice([0.0, 0.25, 0.5, 1.0], m),
+        "a_home": rng.random(m) < 0.7,
+    })
+    for ridge in (1.0, 5.0):
+        np.testing.assert_allclose(
+            massey(games, teams, ridge=ridge).to_numpy(),
+            _dense_reference(games, teams, ridge=ridge), atol=1e-8)

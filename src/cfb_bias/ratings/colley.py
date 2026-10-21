@@ -3,7 +3,7 @@
 import numpy as np
 import pandas as pd
 
-from cfb_bias.ratings.bootstrap import bootstrap_ratings
+from cfb_bias.ratings.bootstrap import bootstrap_weighted
 
 
 def _encode(games: pd.DataFrame, teams: list[str]):
@@ -20,15 +20,13 @@ def _encode(games: pd.DataFrame, teams: list[str]):
 
 
 def _solve(a, b, won, w, n_teams: int) -> np.ndarray:
-    C = 2.0 * np.eye(n_teams)
-    np.add.at(C, (a, a), w)
-    np.add.at(C, (b, b), w)
-    np.add.at(C, (a, b), -w)
-    np.add.at(C, (b, a), -w)
+    k = n_teams
+    diag = 2.0 + np.bincount(a, w, k) + np.bincount(b, w, k)
+    off = np.bincount(a * k + b, w, k * k) + np.bincount(b * k + a, w, k * k)
+    C = -off.reshape(k, k).astype(float)
+    C[np.diag_indices(k)] += diag
     signed = np.where(won, w, -w) / 2.0
-    rhs = np.ones(n_teams)
-    np.add.at(rhs, a, signed)
-    np.add.at(rhs, b, -signed)
+    rhs = 1.0 + np.bincount(a, signed, k) - np.bincount(b, signed, k)
     return np.linalg.solve(C, rhs)
 
 
@@ -42,4 +40,8 @@ def colley_bootstrap(
     games: pd.DataFrame, teams: list[str], n: int = 500, seed: int = 0
 ) -> pd.DataFrame:
     """Colley ratings with 5th/95th percentile bounds from resampling games."""
-    return bootstrap_ratings(colley, games, teams, n=n, seed=seed)
+    a, b, won, w = _encode(games, teams)
+    k = len(teams)
+    return bootstrap_weighted(
+        lambda wt: _solve(a, b, won, wt, k), a, b, w, teams, n=n, seed=seed
+    )

@@ -47,6 +47,7 @@ def weekly_ratings(games: pd.DataFrame, teams: list[str], season: int,
     frames = []
     for week, through, post in cutoffs:
         rg = rating_games(games, season, through, post)
+        rg = rg[rg["weight"] > 0]  # zero-weight games must not touch ratings or CIs
         for method, fn in _METHODS.items():
             res = fn(rg, teams, n=n_boot, seed=0).set_index("team")
             res["sos"] = strength_of_schedule(rg, res["rating"])
