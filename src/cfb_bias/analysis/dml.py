@@ -61,11 +61,11 @@ def partial_out(
         warnings.warn(f"brand column {b!r} is entirely missing; dropped", stacklevel=2)
     b_cols = [b for b in b_cols if b not in empty]
 
-    keep = df[[y, *b_cols]].notna().all(axis=1)
+    keep = df[[y, *b_cols, cluster_col]].notna().all(axis=1)
     data = df.loc[keep]
     n_dropped = int((~keep).sum())
 
-    constant = [b for b in b_cols if _as_float(data[b]).std() == 0]
+    constant = [b for b in b_cols if data[b].nunique(dropna=True) <= 1]
     for b in constant:
         warnings.warn(f"brand column {b!r} is constant over the used rows; dropped", stacklevel=2)
     b_cols = [b for b in b_cols if b not in constant]

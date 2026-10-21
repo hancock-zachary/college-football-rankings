@@ -89,13 +89,13 @@ def test_no_usable_brand_columns_raises():
     df["flat"] = 2.0
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="no usable brand columns"):
             partial_out(df, "y", ["x1", "x2"], ["flat"])
 
 
 def test_single_group_raises():
     df = synthetic(n_seasons=1, n_teams=40, theta=THETA, seed=6)
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="at least 2 distinct"):
         partial_out(df, "y", ["x1", "x2"], ["b"])
 
 
@@ -109,3 +109,33 @@ def test_naive_regression_is_biased_but_dml_is_not():
     assert not (lo < THETA < hi)
     row = _coef(partial_out(df, "y", ["x1", "x2"], ["b"]), "b")
     assert row.ci_lo < THETA < row.ci_hi
+
+
+def test_constant_fractional_brand_column_dropped_with_warning():
+    df = synthetic(n_seasons=6, n_teams=40, theta=THETA, seed=8)
+    df["flat"] = 0.1  # float std of a constant 0.1 column is ~1e-17, not 0
+    with pytest.warns(UserWarning, match="flat"):
+        r = partial_out(df, "y", ["x1", "x2"], ["b", "flat"])
+    assert list(r.coefficients["variable"]) == ["b"]
+
+
+def test_two_brand_columns_estimated_jointly():
+    df = synthetic(n_seasons=8, n_teams=60, theta=THETA, seed=9)
+    df = df.rename(columns={"b": "b1"})
+    df["b2"] = np.random.default_rng(99).normal(size=len(df))  # independent, theta = 0
+    r = partial_out(df, "y", ["x1", "x2"], ["b1", "b2"])
+    assert list(r.coefficients["variable"]) == ["b1", "b2"]
+    b1, b2 = _coef(r, "b1"), _coef(r, "b2")
+    assert b1.ci_lo < THETA < b1.ci_hi
+    assert b2.p_value > 0.05
+
+
+def test_rows_with_missing_cluster_dropped_and_counted():
+    df = synthetic(n_seasons=6, n_teams=40, theta=THETA, seed=10)
+    df["team"] = df["team"].astype(object)
+    df.loc[[3, 4], "team"] = None
+    df.loc[[7], "b"] = np.nan
+    r = partial_out(df, "y", ["x1", "x2"], ["b"])
+    assert r.n_dropped == 3
+    assert not r.y_resid.index.isin([3, 4, 7]).any()
+    assert r.n_teams == 40
