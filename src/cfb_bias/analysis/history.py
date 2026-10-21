@@ -2,6 +2,8 @@
 
 import pandas as pd
 
+from cfb_bias.ratings.inputs import _truthy
+
 AP_POLL = "AP Top 25"
 _SEASON_TYPE_ORDER = {"regular": 0, "postseason": 1}
 
@@ -10,7 +12,7 @@ def alltime_win_pct(games: pd.DataFrame, season: int, first_season: int = 1936) 
     """Win % (ties = 1/2) over completed games in [first_season, season-1], by team."""
     g = games[
         games["season"].between(first_season, season - 1)
-        & games["completed"].fillna(False).astype(bool)
+        & _truthy(games["completed"])
         & games["home_points"].notna()
         & games["away_points"].notna()
     ]

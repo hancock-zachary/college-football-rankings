@@ -81,3 +81,14 @@ def test_ap_titles_latest_regular_week_when_no_postseason():
     p = polls_frame([(1999, "regular", 14, "B", 1), (1999, "regular", 15, "A", 1)])
     t = ap_titles(p, season=2000)
     assert t["A"] == 1 and t.get("B", 0) == 0
+
+
+def test_alltime_win_pct_object_dtype_completed_with_none_no_warning():
+    import warnings
+
+    g = games_frame([(1999, "A", "B", 10, 3), (1999, "A", "C", 10, 3)])
+    g["completed"] = pd.Series([True, None], dtype=object)
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        s = alltime_win_pct(g, season=2000)
+    assert s["A"] == pytest.approx(1.0) and "C" not in s.index

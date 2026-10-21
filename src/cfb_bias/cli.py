@@ -3,6 +3,7 @@ from pathlib import Path
 import pandas as pd
 import typer
 
+from cfb_bias.analysis.brand import build_team_brand
 from cfb_bias.cfbd import CfbdClient, CfbdError
 from cfb_bias.config import load_settings
 from cfb_bias.coverage import coverage_table, write_coverage_md
@@ -89,3 +90,16 @@ def coverage(
     write_coverage_md(df, out)
     typer.echo(df.to_string(index=False))
     typer.echo(f"Wrote {out}")
+
+
+@app.command()
+def brand(
+    from_season: int = typer.Option(2014, "--from", help="First season."),
+    to_season: int = typer.Option(2025, "--to", help="Last season (inclusive)."),
+) -> None:
+    """Build team brand variables into team_brand."""
+    engine = get_engine(load_settings().database_url)
+    for season in range(from_season, to_season + 1):
+        df = build_team_brand(engine, season)
+        written = upsert(engine, "team_brand", df, ["season", "team"])
+        typer.echo(f"Season {season}: wrote {written} team_brand rows.")
