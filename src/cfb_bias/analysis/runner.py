@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass
 
+import numpy as np
 import pandas as pd
 from sqlalchemy import text
 from sqlalchemy.engine import Engine
@@ -79,17 +80,35 @@ KEYS = {
 }
 
 
+JOINT = "__joint__"
+
+
 def run_one(name: str, spec: Analysis, df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """One analysis, no writes: (bias_coefficients rows, team_bias rows)."""
+    """One analysis, no writes: (bias_coefficients rows, team_bias rows).
+
+    Rows need a poll value and at least one game played; rows with no game yet
+    count toward n_dropped. A "__joint__" row carries the cluster-robust Wald test
+    that every brand coefficient is 0 (coef = statistic, p_value = its p). The
+    per-team tests cover only teams ranked at least once (y > 0) in these rows.
+    """
     rows = df[df[spec.y].notna()]
     if spec.first_season is not None:
         rows = rows[rows["season"] >= spec.first_season]
+    played = rows["games_played"] > 0
+    n_unplayed = int((~played).sum())
+    rows = rows[played]
     result = partial_out(rows, spec.y, spec.x, spec.b)
-    coefs = result.coefficients.assign(
-        analysis=name, n_obs=result.n_obs, n_teams=result.n_teams, n_dropped=result.n_dropped
+    joint = pd.DataFrame({"variable": [JOINT], "coef": [result.joint_wald["stat"]],
+                          "se": [np.nan], "ci_lo": [np.nan], "ci_hi": [np.nan],
+                          "p_value": [result.joint_wald["p_value"]]})
+    coefs = pd.concat([result.coefficients, joint], ignore_index=True).assign(
+        analysis=name, n_obs=result.n_obs, n_teams=result.n_teams,
+        n_dropped=result.n_dropped + n_unplayed,
     )
     idx = result.y_resid.index
-    teams = team_bias(result.y_resid, rows.loc[idx, "team"], rows.loc[idx, "season"])
+    ranked = set(rows.loc[rows[spec.y] > 0, "team"])
+    teams = team_bias(result.y_resid, rows.loc[idx, "team"], rows.loc[idx, "season"],
+                      eligible=ranked)
     teams.insert(0, "analysis", name)
     return coefs, teams
 

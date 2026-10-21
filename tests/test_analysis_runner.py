@@ -7,13 +7,16 @@ from typer.testing import CliRunner
 
 from cfb_bias import cli
 from cfb_bias.analysis import dml, runner
-from cfb_bias.analysis.runner import ANALYSES, run_analyses
+from cfb_bias.analysis.runner import ANALYSES, load_frame, run_analyses, run_one
 from cfb_bias.cli import app
 from cfb_bias.db import read_sql, upsert
 
 pytestmark = [
     pytest.mark.db,
     pytest.mark.filterwarnings("ignore:brand column 'enrollment' is entirely missing"),
+    # 12 seeded teams = 12 clusters: the cluster-robust covariance has rank <= 11, below
+    # the 12-13 brand columns, so the joint Wald test uses its rank (real data: ~130 teams)
+    pytest.mark.filterwarnings("ignore:covariance of constraints does not have full rank"),
 ]
 
 SEASONS = range(2501, 2504)
@@ -213,3 +216,39 @@ def test_cli_analyze_prints_start_week_and_rows(seeded, monkeypatch):
     assert "Start week: 3" in r.output
     assert "bias_coefficients: 72 rows" in r.output
     assert "preseason_decay: 14 rows" in r.output
+
+
+def test_joint_wald_row_written_per_analysis(seeded):
+    run_analyses(seeded, SEASONS, start_week=3)
+    coefs = read_sql(seeded, "SELECT * FROM bias_coefficients")
+    joint = coefs[coefs["variable"] == "__joint__"].set_index("analysis")
+    assert set(joint.index) == set(ANALYSES)
+    assert (joint["coef"] > 0).all()  # Wald statistic
+    assert joint[["se", "ci_lo", "ci_hi"]].isna().all().all()
+    assert joint["p_value"].between(0, 1).all()
+    main = coefs[coefs["analysis"] == "main"]
+    assert joint.loc["main", "n_obs"] == main["n_obs"].iloc[0]
+
+
+def test_never_ranked_teams_excluded_from_team_tests(seeded):
+    df = load_frame(seeded, SEASONS)
+    floor = "RunTeam11"
+    df.loc[df["team"] == floor, "ap_score"] = 0.0  # never ranked in the AP points poll
+    window = df[df["poll_week"] >= 3]
+    _, teams = run_one("main", ANALYSES["main"], window)
+    assert floor not in set(teams["team"])
+    assert set(teams["team"]) == set(TEAMS) - {floor}
+    # still in the regression sample: only the team tests drop it
+    coefs, _ = run_one("main", ANALYSES["main"], window)
+    assert coefs["n_obs"].iloc[0] == len(window)
+
+
+def test_rows_without_games_played_not_used(seeded):
+    df = load_frame(seeded, SEASONS)
+    window = df[df["poll_week"] >= 2]
+    unplayed = int((window["games_played"] == 0).sum())
+    assert unplayed > 0  # byes in poll week 2 of the seed
+    coefs, _ = run_one("main", ANALYSES["main"], window)
+    row = coefs.set_index("variable").loc["sec"]
+    assert row["n_obs"] == len(window) - unplayed
+    assert row["n_dropped"] == unplayed
