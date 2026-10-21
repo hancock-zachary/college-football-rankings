@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+from statsmodels.stats.multitest import multipletests
 
 from cfb_bias.analysis.team_effects import team_bias
 
@@ -69,3 +70,19 @@ def test_bh_controls_false_positives():
     out = team_bias(*_panel(effects, 8, weeks=10, sd=0.1, seed=42))
     assert len(out) == 130
     assert out["significant"].sum() <= 6
+
+
+def test_eligible_limits_output_and_bh_family():
+    effects = {"A": 0.1, "Floor": -0.02, **{f"T{i}": 0.0 for i in range(10)}}
+    resid, teams, seasons = _panel(effects, 6, sd=0.01)
+    full = team_bias(resid, teams, seasons).set_index("team")
+    assert full.loc["Floor", "significant"]  # tiny one-signed floor effect is "significant"
+    eligible = set(effects) - {"Floor"}
+    out = team_bias(resid, teams, seasons, eligible=eligible).set_index("team")
+    assert set(out.index) == eligible
+    # BH family excludes the ineligible team: q-values are recomputed over 11 tests, not 12
+    expected_q = multipletests(out["p_value"], method="fdr_bh")[1]
+    np.testing.assert_allclose(out["q_value"], expected_q)
+    assert out.loc["A", "significant"]
+    # None keeps every team
+    assert set(team_bias(resid, teams, seasons, eligible=None)["team"]) == set(effects)

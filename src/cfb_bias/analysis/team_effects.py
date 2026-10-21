@@ -9,17 +9,22 @@ COLUMNS = ["team", "n_seasons", "n_weeks", "mean_resid", "se", "ci_lo", "ci_hi",
 
 
 def team_bias(resid: pd.Series, teams: pd.Series, seasons: pd.Series,
-              min_seasons: int = 3, q: float = 0.05) -> pd.DataFrame:
+              min_seasons: int = 3, q: float = 0.05,
+              eligible: set[str] | None = None) -> pd.DataFrame:
     """Per-team one-sample t-test of team-season mean residuals against 0, BH-adjusted.
 
     `resid`, `teams`, `seasons` are aligned. Unit of analysis is the team-season
     mean; teams with fewer than `min_seasons` seasons are dropped. Teams whose
     season means are all identical (zero variance) have no defined t statistic:
     their p/q are NaN, they are never significant, and they are excluded from the
-    BH family. Sorted by mean_resid descending.
+    BH family. If `eligible` is given, only those teams are tested and reported
+    (the runner passes teams ranked at least once, so never-ranked teams' floor
+    residuals stay out of the family). Sorted by mean_resid descending.
     """
     df = pd.DataFrame({"r": resid.to_numpy(), "team": teams.to_numpy(),
                        "season": seasons.to_numpy()}).dropna()
+    if eligible is not None:
+        df = df[df["team"].isin(eligible)]
     if df.empty:
         return pd.DataFrame(columns=COLUMNS)
     n_weeks = df.groupby("team").size()
