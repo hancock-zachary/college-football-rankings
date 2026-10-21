@@ -168,6 +168,7 @@ def _full_handler():
         "/talent": "talent_2023_sample.json",
         "/coaches": "coaches_2023_sample.json",
         "/venues": "venues_sample.json",
+        "/games/media": "media_2023_sample.json",
     }
 
     def handler(req):
@@ -177,7 +178,7 @@ def _full_handler():
 
 
 TABLES = ["games", "team_seasons", "poll_ranks", "betting_lines", "team_recruiting",
-          "team_talent", "coach_seasons", "venues"]
+          "team_talent", "coach_seasons", "venues", "game_media"]
 
 
 @pytest.mark.db
@@ -187,6 +188,7 @@ def test_pull_all_fills_every_table_and_is_idempotent(tmp_path, pg_engine):
     counts = {t: int(read_sql(pg_engine, f"SELECT count(*) n FROM {t}").n[0]) for t in TABLES}
     assert all(n > 0 for n in counts.values()), counts
     assert counts["coach_seasons"] == 4 and counts["betting_lines"] == 5
+    assert counts["game_media"] == 3
     pull_all(client, pg_engine, 2023, list(ALL_SOURCES), refresh=True)
     again = {t: int(read_sql(pg_engine, f"SELECT count(*) n FROM {t}").n[0]) for t in TABLES}
     assert again == counts

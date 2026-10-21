@@ -1,0 +1,7 @@
+[
+  {"id": 401520281, "season": 2023, "week": 1, "seasonType": "regular", "startTime": "2023-09-02T16:00:00.000Z", "isStartTimeTBD": false, "homeTeam": "Georgia", "homeConference": "SEC", "awayTeam": "UT Martin", "awayConference": "Big Sky", "mediaType": "tv", "outlet": "ESPN"},
+  {"id": 401520281, "season": 2023, "week": 1, "seasonType": "regular", "startTime": "2023-09-02T16:00:00.000Z", "isStartTimeTBD": false, "homeTeam": "Georgia", "homeConference": "SEC", "awayTeam": "UT Martin", "awayConference": "Big Sky", "mediaType": "tv", "outlet": "ESPN"},
+  {"id": 401520281, "season": 2023, "week": 1, "seasonType": "regular", "startTime": "2023-09-02T16:00:00.000Z", "isStartTimeTBD": false, "homeTeam": "Georgia", "homeConference": "SEC", "awayTeam": "UT Martin", "awayConference": "Big Sky", "mediaType": "web", "outlet": "ESPN+"},
+  {"id": 401525555, "season": 2023, "week": 1, "seasonType": "regular", "startTime": null, "isStartTimeTBD": true, "homeTeam": "Ohio State", "homeConference": "Big Ten", "awayTeam": "Indiana", "awayConference": "Big Ten", "mediaType": "tv", "outlet": "FOX"},
+  {"id": 401525556, "season": 2023, "week": 2, "seasonType": "regular", "startTime": "2023-09-09T19:30:00.000Z", "isStartTimeTBD": false, "homeTeam": "Michigan", "homeConference": "Big Ten", "awayTeam": "UNLV", "awayConference": "Mountain West", "mediaType": "tv", "outlet": null}
+]
