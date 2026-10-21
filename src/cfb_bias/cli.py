@@ -1,3 +1,4 @@
+import time
 from pathlib import Path
 
 import pandas as pd
@@ -6,6 +7,7 @@ import typer
 from cfb_bias.analysis.brand import build_team_brand
 from cfb_bias.analysis.features import build_features
 from cfb_bias.analysis.market import consensus_spread, market_ratings
+from cfb_bias.analysis.runner import run_analyses
 from cfb_bias.cfbd import CfbdClient, CfbdError
 from cfb_bias.config import load_settings
 from cfb_bias.coverage import coverage_table, write_coverage_md
@@ -160,3 +162,26 @@ def features(
         df = build_features(engine, season)
         written = upsert(engine, "team_week_features", df, ["season", "poll_week", "team"])
         typer.echo(f"Season {season}: wrote {written} team_week_features rows.")
+
+
+@app.command()
+def analyze(
+    from_season: int = typer.Option(2014, "--from", help="First season."),
+    to_season: int = typer.Option(2025, "--to", help="Last season (inclusive)."),
+    start_week: int | None = typer.Option(
+        None, "--start-week", help="Override the stability-chosen first poll week."
+    ),
+) -> None:
+    """Run the bias analyses into bias_coefficients, team_bias, preseason_decay."""
+    engine = get_engine(load_settings().database_url)
+    seasons = range(from_season, to_season + 1)
+    started = time.perf_counter()
+    written = run_analyses(engine, seasons, start_week=start_week)
+    params = read_sql(engine, "SELECT key, value FROM analysis_params").set_index("key")["value"]
+    typer.echo(
+        f"Start week: {params['start_week']} (stability threshold: "
+        f"{params['stability_threshold']})"
+    )
+    for table, n in written.items():
+        typer.echo(f"{table}: {n} rows")
+    typer.echo(f"Done in {time.perf_counter() - started:.1f}s.")
