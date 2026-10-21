@@ -6,6 +6,7 @@ import warnings
 
 import numpy as np
 import pandas as pd
+from threadpoolctl import threadpool_limits
 
 
 def bootstrap_ratings(
@@ -57,21 +58,23 @@ def bootstrap_weighted(
     if n < 1:
         raise ValueError(f"n must be >= 1, got {n}")
     k = len(teams)
-    rating = np.asarray(fit(w), dtype=float)
-    m = len(w)
-    if m == 0:
-        lo = hi = rating
-    else:
-        rng = np.random.default_rng(seed)
-        draws = np.empty((n, k))
-        for s in range(n):
-            counts = np.bincount(rng.integers(0, m, size=m), minlength=m)
-            wc = w * counts
-            r = np.asarray(fit(wc), dtype=float)
-            present = np.bincount(a, wc, k) + np.bincount(b, wc, k) > 0
-            draws[s] = np.where(present, r, np.nan)
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", RuntimeWarning)  # all-NaN columns -> NaN
-            lo, hi = np.nanpercentile(draws, [5, 95], axis=0)
+    # Hundreds of small (~130x130) solves: multithreaded BLAS is ~300x slower here.
+    with threadpool_limits(limits=1, user_api="blas"):
+        rating = np.asarray(fit(w), dtype=float)
+        m = len(w)
+        if m == 0:
+            lo = hi = rating
+        else:
+            rng = np.random.default_rng(seed)
+            draws = np.empty((n, k))
+            for s in range(n):
+                counts = np.bincount(rng.integers(0, m, size=m), minlength=m)
+                wc = w * counts
+                r = np.asarray(fit(wc), dtype=float)
+                present = np.bincount(a, wc, k) + np.bincount(b, wc, k) > 0
+                draws[s] = np.where(present, r, np.nan)
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", RuntimeWarning)  # all-NaN columns -> NaN
+                lo, hi = np.nanpercentile(draws, [5, 95], axis=0)
     out = pd.DataFrame({"team": teams, "rating": rating, "lo": lo, "hi": hi})
     return out.sort_values("team").reset_index(drop=True)

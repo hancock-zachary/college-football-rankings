@@ -48,3 +48,21 @@ def test_colley_bootstrap_ignores_absent_draws():
     # the 0.5 prior those draws would otherwise contribute.
     assert out.loc["C", "lo"] > 0.5
     assert out.loc["D", "hi"] < 0.5
+
+
+def test_bootstrap_weighted_limits_blas_threads():
+    import numpy as np
+    from threadpoolctl import threadpool_info
+
+    from cfb_bias.ratings.bootstrap import bootstrap_weighted
+
+    seen = []
+
+    def fit(wt):
+        seen.append([lib["num_threads"] for lib in threadpool_info()
+                     if lib["user_api"] == "blas"])
+        return np.array([0.6, 0.4])
+
+    bootstrap_weighted(fit, np.array([0]), np.array([1]), np.array([1.0]),
+                       ["A", "B"], n=3)
+    assert seen and all(t == 1 for counts in seen for t in counts)
