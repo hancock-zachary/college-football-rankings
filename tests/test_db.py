@@ -3,7 +3,7 @@ import pandas as pd
 import pytest
 from sqlalchemy import text
 
-from cfb_bias.db import init_schema, read_sql, upsert
+from cfb_bias.db import get_engine, init_schema, read_sql, upsert
 
 pytestmark = pytest.mark.db
 
@@ -65,3 +65,9 @@ def test_upsert_joins_caller_transaction(clean):
         assert upsert(clean, "team_recruiting", df, ["season", "team"], conn=conn) == 1
         raise RuntimeError("abort")
     assert len(read_sql(clean, "select * from team_recruiting")) == 0
+
+
+def test_get_engine_pre_pings_and_recycles_pool():
+    engine = get_engine("postgresql+psycopg://u:p@localhost/db")
+    assert engine.pool._pre_ping is True
+    assert engine.pool._recycle == 600

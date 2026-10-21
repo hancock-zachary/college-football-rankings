@@ -7,7 +7,7 @@ from sqlalchemy import Connection, Engine, create_engine, text
 
 
 def get_engine(url: str) -> Engine:
-    return create_engine(url)
+    return create_engine(url, pool_pre_ping=True, pool_recycle=600)
 
 
 def init_schema(engine: Engine) -> None:
